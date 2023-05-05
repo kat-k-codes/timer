@@ -1,6 +1,10 @@
+import sys
 import tkinter as tk
 from tkinter import messagebox
-import time
+import ctypes
+import win32gui
+import win32con
+import win32com.client
 
 class PomodoroTimer:
     def __init__(self, master):
@@ -51,7 +55,16 @@ class PomodoroTimer:
             self.timer_label.config(text=self.format_time(self.current_time))
             self.master.after(1000, self.update_timer)
         else:
-            self.switch_timer()
+            self.switch_timer()  
+            
+    def force_foreground(self):
+        if sys.platform.startswith('win'):
+            # Force window to the foreground on Windows
+            hwnd = self.master.winfo_id()
+            win32gui.ShowWindow(hwnd, win32con.SW_RESTORE)
+            ctypes.windll.user32.SetForegroundWindow(hwnd)
+            shell = win32com.client.Dispatch("WScript.Shell")
+            shell.SendKeys('%')           
 
     def switch_timer(self):
         if self.is_work_time:
@@ -61,6 +74,8 @@ class PomodoroTimer:
             messagebox.showinfo("Pomodoro Timer", "Time to get back to work!")
             self.current_time = self.work_time
 
+        self.force_foreground()
+        
         self.is_work_time = not self.is_work_time
         self.update_timer()
 
