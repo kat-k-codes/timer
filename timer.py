@@ -43,7 +43,7 @@ class PomodoroTimer:
         self.break_time = int(self.break_time_spinbox.get()) * 60
         self.current_time = self.work_time
         self.is_work_time = True
-        self.master.after(1000, self.update_timer)
+        self.update_timer()
 
     def update_timer(self):
         if self.current_time > 0:
@@ -51,15 +51,18 @@ class PomodoroTimer:
             self.timer_label.config(text=self.format_time(self.current_time))
             self.master.after(1000, self.update_timer)
         else:
-            if self.is_work_time:
-                messagebox.showinfo("Pomodoro Timer", "Time for a break!")
-                self.current_time = self.break_time
-            else:
-                messagebox.showinfo("Pomodoro Timer", "Time to get back to work!")
-                self.current_time = self.work_time
-            
-            self.is_work_time = not self.is_work_time
-            self.update_timer()
+            self.switch_timer()
+
+    def switch_timer(self):
+        if self.is_work_time:
+            messagebox.showinfo("Pomodoro Timer", "Time for a break!")
+            self.current_time = self.break_time
+        else:
+            messagebox.showinfo("Pomodoro Timer", "Time to get back to work!")
+            self.current_time = self.work_time
+
+        self.is_work_time = not self.is_work_time
+        self.update_timer()
 
 if __name__ == "__main__":
     root = tk.Tk()
