@@ -1,10 +1,10 @@
 import sys
 import tkinter as tk
-from tkinter import messagebox
 import ctypes
 import win32gui
 import win32con
 import win32com.client
+import winsound
 
 class PomodoroTimer:
     def __init__(self, master):
@@ -19,66 +19,78 @@ class PomodoroTimer:
         self.create_widgets()
 
     def create_widgets(self):
-        self.timer_label = tk.Label(self.master, text=self.format_time(self.current_time), font=("Arial", 24))
-        self.timer_label.pack(pady=20)
+        self.work_time_label = tk.Label(self.master, text="Work Time (minutes):")
+        self.work_time_label.grid(row=0, column=0)
 
-        self.work_time_label = tk.Label(self.master, text="Work time (mins):", font=("Arial", 14))
-        self.work_time_label.pack()
-        self.work_time_spinbox = tk.Spinbox(self.master, from_=1, to=180, width=5, font=("Arial", 14))
-        self.work_time_spinbox.pack()
-        self.work_time_spinbox.delete(0, "end")
-        self.work_time_spinbox.insert(0, self.work_time // 60)
+        self.work_time_value = tk.StringVar(self.master, value=int(self.work_time/60))
+        self.work_time_entry = tk.Entry(self.master, textvariable=self.work_time_value)
+        self.work_time_entry.grid(row=0, column=1)
 
-        self.break_time_label = tk.Label(self.master, text="Break time (mins):", font=("Arial", 14))
-        self.break_time_label.pack()
-        self.break_time_spinbox = tk.Spinbox(self.master, from_=1, to=180, width=5, font=("Arial", 14))
-        self.break_time_spinbox.pack()
-        self.break_time_spinbox.delete(0, "end")
-        self.break_time_spinbox.insert(0, self.break_time // 60)
+        self.break_time_label = tk.Label(self.master, text="Break Time (minutes):")
+        self.break_time_label.grid(row=1, column=0)
 
-        self.start_button = tk.Button(self.master, text="Start", command=self.start_timer, font=("Arial", 14))
-        self.start_button.pack(pady=10)
+        self.break_time_value = tk.StringVar(self.master, value=int(self.break_time/60))
+        self.break_time_entry = tk.Entry(self.master, textvariable=self.break_time_value)
+        self.break_time_entry.grid(row=1, column=1)
 
-    def format_time(self, seconds):
-        return f'{seconds // 60:02d}:{seconds % 60:02d}'
+        self.start_button = tk.Button(self.master, text="Start", command=self.start_timer)
+        self.start_button.grid(row=2, column=1)
 
-    def start_timer(self):
-        self.work_time = int(self.work_time_spinbox.get()) * 60
-        self.break_time = int(self.break_time_spinbox.get()) * 60
-        self.current_time = self.work_time
-        self.is_work_time = True
-        self.update_timer()
+        self.time_remaining_label = tk.Label(self.master, text="Time Remaining:")
+        self.time_remaining_label.grid(row=3, column=0)
 
-    def update_timer(self):
-        if self.current_time > 0:
-            self.current_time -= 1
-            self.timer_label.config(text=self.format_time(self.current_time))
-            self.master.after(1000, self.update_timer)
-        else:
-            self.switch_timer()  
-            
+        self.time_remaining_value = tk.StringVar(self.master, value=self.format_time(self.current_time))
+        self.time_remaining_entry = tk.Entry(self.master, textvariable=self.time_remaining_value)
+        self.time_remaining_entry.grid(row=3, column=1)
+
+        self.message_label = tk.Label(self.master, text="", font=("Helvetica", 16))
+        self.message_label.grid(row=4, column=0, columnspan=2)
+
+    def play_sound(self):
+        winsound.Beep(1000, 500)  # Frequency (Hz), Duration (ms)
+
     def force_foreground(self):
         if sys.platform.startswith('win'):
-            # Force window to the foreground on Windows
             hwnd = self.master.winfo_id()
             win32gui.ShowWindow(hwnd, win32con.SW_RESTORE)
             ctypes.windll.user32.SetForegroundWindow(hwnd)
             shell = win32com.client.Dispatch("WScript.Shell")
-            shell.SendKeys('%')           
+            shell.SendKeys('%')
 
     def switch_timer(self):
+        self.play_sound()
+        
         if self.is_work_time:
-            messagebox.showinfo("Pomodoro Timer", "Time for a break!")
+            self.message_label.config(text="Time for a break!")
             self.current_time = self.break_time
         else:
-            messagebox.showinfo("Pomodoro Timer", "Time to get back to work!")
+            self.message_label.config(text="Time to get back to work!")
             self.current_time = self.work_time
 
         self.force_foreground()
-        
+
         self.is_work_time = not self.is_work_time
         self.update_timer()
 
+    def start_timer(self):
+        self.work_time = int(self.work_time_value.get()) * 60
+        self.break_time = int(self.break_time_value.get()) * 60
+        self.current_time = self.work_time
+        self.update_timer()
+
+    def update_timer(self):
+        self.time_remaining_value.set(self.format_time(self.current_time))
+        if self.current_time > 0:
+            self.current_time -= 1
+            self.master.after(1000, self.update_timer)
+        else:
+            self.switch_timer()
+
+    def format_time(self, seconds):
+        minutes = int(seconds / 60)
+        seconds = int(seconds % 60)
+        return f"{minutes:02d}:{seconds:02d}"
+    
 if __name__ == "__main__":
     root = tk.Tk()
     app = PomodoroTimer(root)
